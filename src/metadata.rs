@@ -20,6 +20,7 @@ use providers::cloudstack::network::CloudstackNetwork;
 use providers::digitalocean::DigitalOceanProvider;
 use providers::ec2::Ec2Provider;
 use providers::gce::GceProvider;
+use providers::hcloud::HetznerCloudProvider;
 use providers::openstack::network::OpenstackProvider;
 use providers::packet::PacketProvider;
 use providers::vagrant_virtualbox::VagrantVirtualboxProvider;
@@ -41,6 +42,7 @@ pub fn fetch_metadata(provider: &str) -> errors::Result<Box<providers::MetadataP
         "digitalocean" => box_result!(DigitalOceanProvider::try_new()?),
         "ec2" => box_result!(Ec2Provider::try_new()?),
         "gce" => box_result!(GceProvider::try_new()?),
+        "hcloud" => box_result!(HetznerCloudProvider::try_new()?),
         "openstack-metadata" => box_result!(OpenstackProvider::try_new()?),
         "packet" => box_result!(PacketProvider::try_new()?),
         "vagrant-virtualbox" => box_result!(VagrantVirtualboxProvider::new()),
