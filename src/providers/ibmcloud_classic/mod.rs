@@ -295,6 +295,29 @@ impl MetadataProvider for IBMClassicProvider {
         warn!("boot check-in requested, but not supported on this platform");
         Ok(())
     }
+
+    fn rd_net_bootstrap(&self) -> Result<()> {
+        let net_ifaces = self.networks()?;
+        let mut nameservers = vec![];
+
+        // Configure network.
+        for iface in net_ifaces {
+            iface.ip_apply()?;
+
+            // Collect nameservers for later.
+            for ns in iface.nameservers {
+                if !nameservers.contains(&ns) {
+                    nameservers.push(ns);
+                }
+            }
+        }
+
+        // Configure DNS resolvers.
+        let mut resolvconf = File::create("/etc/resolv.conf")?;
+        crate::network::utils::write_resolvconf(&mut resolvconf, &nameservers)?;
+
+        Ok(())
+    }
 }
 
 impl Drop for IBMClassicProvider {

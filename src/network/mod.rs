@@ -24,6 +24,9 @@ use std::net::IpAddr;
 use std::string::String;
 use std::string::ToString;
 
+mod ip_cli;
+pub mod utils;
+
 pub const BONDING_MODE_BALANCE_RR: u32 = 0;
 pub const BONDING_MODE_ACTIVE_BACKUP: u32 = 1;
 pub const BONDING_MODE_BALANCE_XOR: u32 = 2;
@@ -176,6 +179,29 @@ impl Interface {
         }
 
         config
+    }
+
+    /// Bring up interfaces and apply network configuration via `ip`.
+    pub fn ip_apply(&self) -> Result<()> {
+        let name = match self.name {
+            Some(ref n) => n,
+            None => bail!("missing interface name"),
+        };
+
+        // Bring up.
+        ip_cli::ip_link_set_up(&name)?;
+
+        // Add addresses.
+        for ip_addr in &self.ip_addresses {
+            ip_cli::ip_address_add(&name, ip_addr)?;
+        }
+
+        // Add routes
+        for route in &self.routes {
+            ip_cli::ip_route_add(route)?;
+        }
+
+        Ok(())
     }
 }
 

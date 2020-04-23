@@ -2,8 +2,10 @@
 
 use crate::errors::*;
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
+use error_chain::bail;
 use slog_scope::trace;
 
+mod exp;
 mod multi;
 
 /// Path to kernel command-line (requires procfs mount).
@@ -13,6 +15,7 @@ const CMDLINE_PATH: &str = "/proc/cmdline";
 #[derive(Debug)]
 pub(crate) enum CliConfig {
     Multi(multi::CliMulti),
+    Exp(exp::CliExp),
 }
 
 impl CliConfig {
@@ -20,6 +23,7 @@ impl CliConfig {
     pub fn parse_subcommands(app_matches: ArgMatches) -> Result<Self> {
         let cfg = match app_matches.subcommand() {
             ("multi", Some(matches)) => multi::CliMulti::parse(matches)?,
+            ("exp", Some(matches)) => exp::CliExp::parse(matches)?,
             (x, _) => unreachable!("unrecognized subcommand '{}'", x),
         };
 
@@ -30,6 +34,7 @@ impl CliConfig {
     pub fn run(self) -> Result<()> {
         match self {
             CliConfig::Multi(cmd) => cmd.run(),
+            CliConfig::Exp(cmd) => cmd.run(),
         }
     }
 }
@@ -44,62 +49,97 @@ pub(crate) fn parse_args(argv: impl IntoIterator<Item = String>) -> Result<CliCo
     Ok(cfg)
 }
 
+/// Parse provider ID from flag or kargs.
+fn parse_provider(matches: &clap::ArgMatches) -> Result<String> {
+    let provider = match (matches.value_of("provider"), matches.is_present("cmdline")) {
+        (Some(provider), false) => String::from(provider),
+        (None, true) => crate::util::get_platform(CMDLINE_PATH)?,
+        (None, false) => bail!("must set either --provider or --cmdline"),
+        (Some(_), true) => bail!("cannot process both --provider and --cmdline"),
+    };
+
+    Ok(provider)
+}
+
 /// CLI setup, covering all sub-commands and arguments.
 fn cli_setup<'a, 'b>() -> App<'a, 'b> {
     // NOTE(lucab): due to legacy translation there can't be global arguments
     //  here, i.e. a sub-command is always expected first.
-    App::new("Afterburn").version(crate_version!()).subcommand(
-        SubCommand::with_name("multi")
-            .about("Perform multiple tasks in a single call")
-            .arg(
-                Arg::with_name("legacy-cli")
-                    .long("legacy-cli")
-                    .help("Whether this command was translated from legacy CLI args")
-                    .hidden(true),
-            )
-            .arg(
-                Arg::with_name("provider")
-                    .long("provider")
-                    .help("The name of the cloud provider")
-                    .global(true)
-                    .takes_value(true),
-            )
-            .arg(
-                Arg::with_name("cmdline")
-                    .long("cmdline")
-                    .global(true)
-                    .help("Read the cloud provider from the kernel cmdline"),
-            )
-            .arg(
-                Arg::with_name("attributes")
-                    .long("attributes")
-                    .help("The file into which the metadata attributes are written")
-                    .takes_value(true),
-            )
-            .arg(
-                Arg::with_name("check-in")
-                    .long("check-in")
-                    .help("Check-in this instance boot with the cloud provider"),
-            )
-            .arg(
-                Arg::with_name("hostname")
-                    .long("hostname")
-                    .help("The file into which the hostname should be written")
-                    .takes_value(true),
-            )
-            .arg(
-                Arg::with_name("network-units")
-                    .long("network-units")
-                    .help("The directory into which network units are written")
-                    .takes_value(true),
-            )
-            .arg(
-                Arg::with_name("ssh-keys")
-                    .long("ssh-keys")
-                    .help("Update SSH keys for the given user")
-                    .takes_value(true),
-            ),
-    )
+    App::new("Afterburn")
+        .version(crate_version!())
+        .subcommand(
+            SubCommand::with_name("multi")
+                .about("Perform multiple tasks in a single call")
+                .arg(
+                    Arg::with_name("legacy-cli")
+                        .long("legacy-cli")
+                        .help("Whether this command was translated from legacy CLI args")
+                        .hidden(true),
+                )
+                .arg(
+                    Arg::with_name("provider")
+                        .long("provider")
+                        .help("The name of the cloud provider")
+                        .global(true)
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("cmdline")
+                        .long("cmdline")
+                        .global(true)
+                        .help("Read the cloud provider from the kernel cmdline"),
+                )
+                .arg(
+                    Arg::with_name("attributes")
+                        .long("attributes")
+                        .help("The file into which the metadata attributes are written")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("check-in")
+                        .long("check-in")
+                        .help("Check-in this instance boot with the cloud provider"),
+                )
+                .arg(
+                    Arg::with_name("hostname")
+                        .long("hostname")
+                        .help("The file into which the hostname should be written")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("network-units")
+                        .long("network-units")
+                        .help("The directory into which network units are written")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("ssh-keys")
+                        .long("ssh-keys")
+                        .help("Update SSH keys for the given user")
+                        .takes_value(true),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("exp")
+                .about("experimental commands")
+                .subcommand(
+                    SubCommand::with_name("rd-net-bootstrap")
+                        .about("Bootstrap network in initrd")
+                        .arg(
+                            Arg::with_name("provider")
+                                .long("provider")
+                                .help("The name of the cloud provider")
+                                .global(true)
+                                .takes_value(true),
+                        )
+                        .arg(
+                            Arg::with_name("cmdline")
+                                .long("cmdline")
+                                .global(true)
+                                .help("Read the cloud provider from the kernel cmdline"),
+                        ),
+                ),
+        )
 }
 
 /// Translate command-line arguments from legacy mode.
@@ -138,8 +178,6 @@ fn translate_legacy_args(cli: impl IntoIterator<Item = String>) -> impl Iterator
         }
     })
 }
-
-impl CliConfig {}
 
 #[cfg(test)]
 mod tests {

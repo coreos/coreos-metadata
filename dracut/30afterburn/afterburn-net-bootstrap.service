@@ -1,0 +1,13 @@
+[Unit]
+Description=Afterburn network bootstrapping
+# IBM Cloud (Classic) has no DHCP.
+ConditionKernelCommandLine=|ignition.platform.id=ibmcloud-classic
+
+Before=ignition-fetch.service
+
+OnFailure=emergency.target
+OnFailureJobMode=isolate
+
+[Service]
+ExecStart=/usr/bin/afterburn exp rd-net-bootstrap --cmdline
+Type=oneshot

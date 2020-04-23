@@ -1,9 +1,7 @@
 //! `multi` CLI sub-command.
 
-use super::CMDLINE_PATH;
 use crate::errors::*;
 use crate::metadata;
-use error_chain::bail;
 
 #[derive(Debug)]
 pub struct CliMulti {
@@ -18,7 +16,7 @@ pub struct CliMulti {
 impl CliMulti {
     /// Parse flags for the `multi` sub-command.
     pub(crate) fn parse(matches: &clap::ArgMatches) -> Result<super::CliConfig> {
-        let provider = Self::parse_provider(matches)?;
+        let provider = super::parse_provider(matches)?;
 
         let multi = Self {
             attributes_file: matches.value_of("attributes").map(String::from),
@@ -40,18 +38,6 @@ impl CliMulti {
         }
 
         Ok(super::CliConfig::Multi(multi))
-    }
-
-    /// Parse provider ID from flag or kargs.
-    fn parse_provider(matches: &clap::ArgMatches) -> Result<String> {
-        let provider = match (matches.value_of("provider"), matches.is_present("cmdline")) {
-            (Some(provider), false) => String::from(provider),
-            (None, true) => crate::util::get_platform(CMDLINE_PATH)?,
-            (None, false) => bail!("must set either --provider or --cmdline"),
-            (Some(_), true) => bail!("cannot process both --provider and --cmdline"),
-        };
-
-        Ok(provider)
     }
 
     /// Run the `multi` sub-command.
