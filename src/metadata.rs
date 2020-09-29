@@ -27,6 +27,7 @@ use crate::providers::ibmcloud_classic::IBMClassicProvider;
 use crate::providers::openstack;
 use crate::providers::openstack::network::OpenstackProviderNetwork;
 use crate::providers::packet::PacketProvider;
+use crate::providers::qemu::QemuProvider;
 #[cfg(feature = "cl-legacy")]
 use crate::providers::vagrant_virtualbox::VagrantVirtualboxProvider;
 use crate::providers::vmware::VmwareProvider;
@@ -66,6 +67,7 @@ pub fn fetch_metadata(provider: &str) -> errors::Result<Box<dyn providers::Metad
         "openstack" => openstack::try_config_drive_else_network(),
         "openstack-metadata" => box_result!(OpenstackProviderNetwork::try_new()?),
         "packet" => box_result!(PacketProvider::try_new()?),
+        "qemu" => box_result!(QemuProvider::try_new()?),
         #[cfg(feature = "cl-legacy")]
         "vagrant-virtualbox" => box_result!(VagrantVirtualboxProvider::new()),
         "vmware" => box_result!(VmwareProvider::try_new()?),

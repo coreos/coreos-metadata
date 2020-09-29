@@ -30,6 +30,7 @@ error_chain! {
         Json(serde_json::Error);
         Log(::slog::Error);
         MacAddr(pnet_base::ParseMacAddrErr);
+        OvirtGuestAgent(tokio_oga::OgaError);
         OpensslStack(::openssl::error::ErrorStack);
         Reqwest(::reqwest::Error);
         VmwBackdoor(vmw_backdoor::VmwError);

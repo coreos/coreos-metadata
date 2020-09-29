@@ -51,6 +51,8 @@ slog-async = "^2.5"
 slog-scope = "^4.3"
 slog-term = "^2.6"
 tempfile = "^3.1"
+tokio = { version = "0.2", features = ["macros", "rt-core", "rt-threaded", "sync", "time"] }
+tokio-oga = { git = "https://github.com/lucab/exp-tokio-oga", branch = "wip" }
 update-ssh-keys = { version = "^0.6", optional = true }
 users = "^0.10"
 vmw_backdoor = "^0.1"
