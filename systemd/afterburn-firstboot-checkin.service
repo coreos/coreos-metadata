@@ -2,6 +2,14 @@
 Description=Afterburn (Firstboot Check In)
 ConditionKernelCommandLine=|ignition.platform.id=packet
 ConditionFirstBoot=yes
+# All services which use ConditionFirstBoot=yes should use
+# Before=first-boot-complete.target, which is a target that
+# was introduced in https://github.com/systemd/systemd/issues/4511
+# and hasn't propagated everywhere yet. Once the target propagates
+# everywhere, we can drop the systemd-machine-id-commit.service
+# from the Before= line.
+Before=first-boot-complete.target systemd-machine-id-commit.service
+Wants=first-boot-complete.target
 After=network.target
 After=boot-complete.target
 
