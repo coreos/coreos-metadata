@@ -10,6 +10,7 @@ ConditionKernelCommandLine=|ignition.platform.id=digitalocean
 ConditionKernelCommandLine=|ignition.platform.id=exoscale
 ConditionKernelCommandLine=|ignition.platform.id=ibmcloud
 ConditionKernelCommandLine=|ignition.platform.id=vultr
+ConditionKernelCommandLine=|ignition.platform.id=gcp
 
 # We order this service after sysroot has been mounted
 # but before ignition-files stage has run, so ignition can
